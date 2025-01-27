@@ -83,6 +83,26 @@ return {
       end
     end
 
+    local function add_with_hl_group(chunks, lines)
+      for _, line in ipairs(type(lines) == "table" and lines or { lines }) do
+        local content, hl_group = line[1], (line[2] or "Normal")
+        if content then
+          local trimmed = content:gsub("^%s+", ""):gsub("%s+$", "")
+          if #trimmed > 0 then
+            if #chunks >= 2 and chunks[#chunks][1] == hl_group then
+              local prev_content = chunks[#chunks - 1][1]
+              local prev = prev_content:gsub('^"', ""):gsub('"$', "")
+              chunks[#chunks - 1][1] = ('"%s %s"'):format(prev, content)
+            else
+              table.insert(chunks, { ('"%s"'):format(content), hl_group })
+              table.insert(chunks, { hl_group, hl_group })
+            end
+          end
+        end
+      end
+      return chunks
+    end
+
     local msg = vim.iter(info):fold({}, function(a, i)
       local add = make_add(a)
       if i.type == "sign" then
@@ -96,14 +116,14 @@ return {
         return add(
           vim.iter(i.virt_text):fold(
             { { i.ns_name, "Title" }, { ("(%d)"):format(i.ns_id), "Comment" }, { i.type, "Type" } },
-            function(chunks, b)
-              if b[2] then
-                table.insert(chunks, { ('"%s" %s'):format(b[1], b[2]), b[2] })
-              else
-                table.insert(chunks, { ('"%s"'):format(b[1]) })
-              end
-              return chunks
-            end
+            add_with_hl_group
+          )
+        )
+      elseif i.type == "virt_lines" then
+        return add(
+          vim.iter(i.virt_lines):fold(
+            { { i.ns_name, "Title" }, { ("(%d)"):format(i.ns_id), "Comment" }, { i.type, "Type" } },
+            add_with_hl_group
           )
         )
       elseif i.type == "highlight" then
