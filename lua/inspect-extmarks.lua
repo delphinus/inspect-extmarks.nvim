@@ -84,7 +84,7 @@ return {
     end
 
     local function add_with_hl_group(chunks, lines)
-      for _, line in ipairs(type(lines) == "table" and lines or { lines }) do
+      for _, line in ipairs(lines) do
         local content, hl_group = line[1], (line[2] or "Normal")
         if content then
           local trimmed = content:gsub("^%s+", ""):gsub("%s+$", "")
@@ -116,7 +116,9 @@ return {
         return add(
           vim.iter(i.virt_text):fold(
             { { i.ns_name, "Title" }, { ("(%d)"):format(i.ns_id), "Comment" }, { i.type, "Type" } },
-            add_with_hl_group
+            function(chunks, line)
+              return add_with_hl_group(chunks, { line })
+            end
           )
         )
       elseif i.type == "virt_lines" then
